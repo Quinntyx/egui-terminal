@@ -5,7 +5,7 @@ use app::App;
 
 fn main () -> Result<(), eframe::Error> {
     eframe::run_native(
-        "Counter",
+        "TermTest",
         eframe::NativeOptions::default(),
         Box::new(App::setup),
     )

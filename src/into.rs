@@ -3,14 +3,20 @@
 
 use crate::error::conversion::TermConversionError;
 
+use wezterm_term::{KeyModifiers, MouseButton};
+use wezterm_term::KeyCode as WezKey;
+use wezterm_term::color::SrgbaTuple;
+use egui::{Color32, Modifiers, PointerButton};
+use egui::Key::{*, self};
+
 pub trait IntoEgui<T> {
     fn into_egui(self) -> T;
 }
 
-impl IntoEgui<egui::Color32> for wezterm_term::color::SrgbaTuple {
+impl IntoEgui<Color32> for SrgbaTuple {
     fn into_egui(self) -> egui::Color32 {
         let (r, g, b, a) = self.to_srgb_u8();
-        egui::Color32::from_rgba_unmultiplied(r, g, b, a)
+        Color32::from_rgba_unmultiplied(r, g, b, a)
     }
 }
 
@@ -25,59 +31,59 @@ where
     fn try_into_wez(self) -> Result<T, TermConversionError>;
 }
 
-impl TryIntoWez<wezterm_term::KeyCode> for egui::Key {
-    fn try_into_wez(self) -> Result<wezterm_term::KeyCode, TermConversionError> {
+impl TryIntoWez<WezKey> for Key {
+    fn try_into_wez(self) -> Result<WezKey, TermConversionError> {
         Ok(match self {
-            egui::Key::ArrowDown => wezterm_term::KeyCode::DownArrow,
-            egui::Key::ArrowLeft => wezterm_term::KeyCode::LeftArrow,
-            egui::Key::ArrowRight => wezterm_term::KeyCode::RightArrow,
-            egui::Key::ArrowUp => wezterm_term::KeyCode::UpArrow,
-            egui::Key::Escape => wezterm_term::KeyCode::Escape,
-            egui::Key::Tab => wezterm_term::KeyCode::Tab,
-            egui::Key::Backspace => wezterm_term::KeyCode::Backspace,
-            egui::Key::Enter => wezterm_term::KeyCode::Enter,
-            egui::Key::Insert => wezterm_term::KeyCode::Insert,
-            egui::Key::Delete => wezterm_term::KeyCode::Delete,
-            egui::Key::Home => wezterm_term::KeyCode::Home,
-            egui::Key::End => wezterm_term::KeyCode::End,
-            egui::Key::PageUp => wezterm_term::KeyCode::PageUp,
-            egui::Key::PageDown => wezterm_term::KeyCode::PageDown,
-            egui::Key::Num0 => wezterm_term::KeyCode::Numpad0,
-            egui::Key::Num1 => wezterm_term::KeyCode::Numpad1,
-            egui::Key::Num2 => wezterm_term::KeyCode::Numpad2,
-            egui::Key::Num3 => wezterm_term::KeyCode::Numpad3,
-            egui::Key::Num4 => wezterm_term::KeyCode::Numpad4,
-            egui::Key::Num5 => wezterm_term::KeyCode::Numpad5,
-            egui::Key::Num6 => wezterm_term::KeyCode::Numpad6,
-            egui::Key::Num7 => wezterm_term::KeyCode::Numpad7,
-            egui::Key::Num8 => wezterm_term::KeyCode::Numpad8,
-            egui::Key::Num9 => wezterm_term::KeyCode::Numpad9,
-            egui::Key::F1 => wezterm_term::KeyCode::Function(1),
-            egui::Key::F2 => wezterm_term::KeyCode::Function(2),
-            egui::Key::F3 => wezterm_term::KeyCode::Function(3),
-            egui::Key::F4 => wezterm_term::KeyCode::Function(4),
-            egui::Key::F5 => wezterm_term::KeyCode::Function(5),
-            egui::Key::F6 => wezterm_term::KeyCode::Function(6),
-            egui::Key::F7 => wezterm_term::KeyCode::Function(7),
-            egui::Key::F8 => wezterm_term::KeyCode::Function(8),
-            egui::Key::F9 => wezterm_term::KeyCode::Function(9),
-            egui::Key::F10 => wezterm_term::KeyCode::Function(10),
-            egui::Key::F11 => wezterm_term::KeyCode::Function(11),
-            egui::Key::F12 => wezterm_term::KeyCode::Function(12),
-            egui::Key::F13 => wezterm_term::KeyCode::Function(13),
-            egui::Key::F14 => wezterm_term::KeyCode::Function(14),
-            egui::Key::F15 => wezterm_term::KeyCode::Function(15),
-            egui::Key::F16 => wezterm_term::KeyCode::Function(16),
-            egui::Key::F17 => wezterm_term::KeyCode::Function(17),
-            egui::Key::F18 => wezterm_term::KeyCode::Function(18),
-            egui::Key::F19 => wezterm_term::KeyCode::Function(19),
-            egui::Key::F20 => wezterm_term::KeyCode::Function(20),
+            ArrowDown => WezKey::DownArrow,
+            ArrowLeft => WezKey::LeftArrow,
+            ArrowRight => WezKey::RightArrow,
+            ArrowUp => WezKey::UpArrow,
+            Escape => WezKey::Escape,
+            Tab => WezKey::Tab,
+            Backspace => WezKey::Backspace,
+            Enter => WezKey::Enter,
+            Insert => WezKey::Insert,
+            Delete => WezKey::Delete,
+            Home => WezKey::Home,
+            End => WezKey::End,
+            PageUp => WezKey::PageUp,
+            PageDown => WezKey::PageDown,
+            Num0 => WezKey::Numpad0,
+            Num1 => WezKey::Numpad1,
+            Num2 => WezKey::Numpad2,
+            Num3 => WezKey::Numpad3,
+            Num4 => WezKey::Numpad4,
+            Num5 => WezKey::Numpad5,
+            Num6 => WezKey::Numpad6,
+            Num7 => WezKey::Numpad7,
+            Num8 => WezKey::Numpad8,
+            Num9 => WezKey::Numpad9,
+            F1 => WezKey::Function(1),
+            F2 => WezKey::Function(2),
+            F3 => WezKey::Function(3),
+            F4 => WezKey::Function(4),
+            F5 => WezKey::Function(5),
+            F6 => WezKey::Function(6),
+            F7 => WezKey::Function(7),
+            F8 => WezKey::Function(8),
+            F9 => WezKey::Function(9),
+            F10 => WezKey::Function(10),
+            F11 => WezKey::Function(11),
+            F12 => WezKey::Function(12),
+            F13 => WezKey::Function(13),
+            F14 => WezKey::Function(14),
+            F15 => WezKey::Function(15),
+            F16 => WezKey::Function(16),
+            F17 => WezKey::Function(17),
+            F18 => WezKey::Function(18),
+            F19 => WezKey::Function(19),
+            F20 => WezKey::Function(20),
             _ => return Err(TermConversionError),
         })
     }
 }
 
-impl IntoWez<wezterm_term::KeyModifiers> for egui::Modifiers {
+impl IntoWez<KeyModifiers> for Modifiers {
     fn into_wez(self) -> wezterm_term::KeyModifiers {
         let mut keymod = wezterm_term::KeyModifiers::NONE;
         keymod.set(wezterm_term::KeyModifiers::ALT, self.alt);
@@ -89,13 +95,22 @@ impl IntoWez<wezterm_term::KeyModifiers> for egui::Modifiers {
     }
 }
 
-impl IntoWez<wezterm_term::MouseButton> for egui::PointerButton {
+impl IntoWez<MouseButton> for PointerButton {
     fn into_wez(self) -> wezterm_term::MouseButton {
         match self {
-            egui::PointerButton::Primary => wezterm_term::MouseButton::Left,
-            egui::PointerButton::Secondary => wezterm_term::MouseButton::Right,
-            egui::PointerButton::Middle => wezterm_term::MouseButton::Middle,
-            _ => wezterm_term::MouseButton::None,
+            PointerButton::Primary => MouseButton::Left,
+            PointerButton::Secondary => MouseButton::Right,
+            PointerButton::Middle => MouseButton::Middle,
+            _ => MouseButton::None,
         }
+    }
+}
+
+impl IntoWez<wezterm_term::color::SrgbaTuple> for egui::Color32 {
+    fn into_wez (self) -> wezterm_term::color::SrgbaTuple {
+        let (r, g, b, a) = self.to_tuple();
+
+        // @todo figure out whether this is right
+        SrgbaTuple(r as f32 / 255., g as f32 / 255., b as f32 / 255., a as f32 / 255.) 
     }
 }

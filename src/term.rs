@@ -1,7 +1,13 @@
+// Special thanks to Speak2Erase for the code used as reference for this implementation (and for
+// some code taken) :)
+//
+// You can find her on Github, she does good work; This project is based on luminol-term, from the
+// Luminol project, at https://github.com/Astrabit-ST/Luminol. Go check it out!
 
 use std::io::prelude::*;
 use std::sync::Arc;
 use std::ops::Range;
+use std::ffi::OsString;
 
 pub use portable_pty::CommandBuilder;
 pub use termwiz::Error;
@@ -9,19 +15,22 @@ pub use termwiz::Error;
 use crossbeam_channel::{unbounded, Receiver};
 use wezterm_term::{TerminalSize, Terminal as WezTerm};
 use termwiz::cellcluster::CellCluster;
+use portable_pty::PtySize;
 
 use egui::{TextFormat, Event, Modifiers, Vec2, InputState, FontId, Response, Ui};
 
-use crate::into::{IntoEgui, IntoWez, TryIntoWez};
+use crate::into::*;
 use crate::config::definitions::TermResult;
-use crate::config::term_config::Config;
+use crate::config::term_config::{Config, Style};
 
 pub struct TermHandler {
     terminal: WezTerm,
     reader: Receiver<Vec<termwiz::escape::Action>>,
+    style: Style,
+    wez_config: Arc<Config>,
 
     child: Box<dyn portable_pty::Child + Send + Sync>,
-    //pair: portable_pty::PtyPair,
+    pair: portable_pty::PtyPair,
     text_width: f32,
     text_height: f32,
     size: TerminalSize,
@@ -49,15 +58,19 @@ impl TermHandler {
     pub fn try_new (command: CommandBuilder) -> Result<Self, termwiz::Error> {
         let pty_system = portable_pty::native_pty_system();
         let pair = pty_system.openpty(portable_pty::PtySize::default())?;
-        let child = pair.slave.spawn_command(command)?;
+        let child = pair.slave.spawn_command(command.clone())?;
 
         let reader = pair.master.try_clone_reader()?;
         let writer = pair.master.take_writer()?;
 
+        let style = Style::default();
+
+        let wez_config = style.default_wez_config();
+
         let terminal = WezTerm::new(
             TerminalSize::default(),
-            Arc::new(Config),
-            "luminol-term",
+            wez_config.clone(),
+            command.get_argv().join(OsString::from(" ").as_os_str()).into_string().expect("should be able to convert command to String").as_ref(),
             "1.0",
             writer,
         );
@@ -81,9 +94,11 @@ impl TermHandler {
         
         Ok(Self {
             terminal,
+            style,
+            wez_config,
             reader: reciever,
             child,
-            //pair,
+            pair,
             text_width: 0.0,
             text_height: 0.0,
             size: TerminalSize::default(),
@@ -354,7 +369,6 @@ impl TermHandler {
         response
     }
 
-
     pub(crate) fn draw (&mut self, ui: &mut egui::Ui, widget_size: egui::Vec2) -> std::io::Result<Response> {
         while let Ok(actions) = self.reader.try_recv() {
             self.terminal.perform_actions(actions);
@@ -369,10 +383,12 @@ impl TermHandler {
         self.size.rows = (widget_size.y / self.text_height) as usize;
 
         self.resize_rc();
+        self.config(ui);
 
         let r = egui::ScrollArea::vertical()
             .max_height((self.size.rows + 1) as f32 * self.text_height)
             .stick_to_bottom(true)
+            .id_source(ui.next_auto_id())
             .show_rows(
                 ui,
                 self.text_height,
@@ -395,9 +411,24 @@ impl TermHandler {
     }
 
     fn resize_rc (&mut self) {
-        println!("Resizing terminal to {:#?}, char size is {} x {}", self.size, self.text_width, self.text_height);
+        if self.terminal.get_size() == self.size { return; }
+
         self.terminal.resize(self.size);
-        println!("Resulting terminal size: {:#?}", self.terminal.get_size());
+        let r = self.pair.master.resize(PtySize {
+            rows: self.size.rows as u16,
+            cols: self.size.cols as u16,
+            ..Default::default()
+        });
+
+        if let Err(e) = r {
+            eprintln!("error resizing terminal: {e}");
+        }
+    }
+
+    fn config (&mut self, ui: &Ui) {
+        if *self.wez_config == *self.style.generate_wez_config(ui) { return; }
+        self.wez_config = self.style.generate_wez_config(ui).clone();
+        self.terminal.set_config(self.wez_config.clone());
     }
 }
 
