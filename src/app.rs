@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env::args;
 
 use eframe::{egui, CreationContext};
-use egui_terminal::{Terminal, TermHandler};
+use egui_terminal::prelude::*;
 use egui::vec2;
 
 pub struct App {
@@ -16,7 +16,7 @@ impl App {
         args.next();
         let cmd = match args.next() {
             Some(c) => c,
-            None => String::from("bash"),
+            None => String::from("zsh"),
         };
 
         map.insert(String::from("root"), TermHandler::new_from_str(&cmd));
@@ -37,14 +37,12 @@ impl eframe::App for App {
     fn update (&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             for (idx, (_id, term)) in self.terminals.iter_mut().enumerate() {
-                ui.add(
-                    Terminal::new(term)
-                        .with_size(
-                            vec2(
-                                1400. + 200. * idx as f32,
-                                300. + 100. * idx as f32
-                            )
-                        )
+                ui.terminal_sized(
+                    term,
+                    vec2(
+                        1400. + 200. * idx as f32,
+                        300. + 100. * idx as f32
+                    )
                 );
             }
         });
