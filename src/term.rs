@@ -28,6 +28,9 @@ pub struct TermHandler {
     reader: Receiver<Vec<termwiz::escape::Action>>,
     style: Style,
     wez_config: Arc<Config>,
+    consume_tab: bool,
+    consume_escape: bool,
+    was_focused: bool,
 
     child: Box<dyn portable_pty::Child + Send + Sync>,
     pair: portable_pty::PtyPair,
@@ -96,6 +99,9 @@ impl TermHandler {
             terminal,
             style,
             wez_config,
+            consume_escape: true,
+            consume_tab: true,
+            was_focused: false,
             reader: reciever,
             child,
             pair,
@@ -232,12 +238,12 @@ impl TermHandler {
 
         if let Ok(key) = key.try_into_wez() {
             if *pressed {
-                dbg!(self.terminal.key_down(dbg!(key), dbg!(modifiers.into_wez()))?);
+                self.terminal.key_down(key, modifiers.into_wez())?;
             } else {
                 self.terminal.key_up(key, modifiers.into_wez())?;
             }
         } else {
-            // dbg!(e); // @todo figure out why this prints almost every keypress
+            // dbg!(e); // @todo figure out why this prints almost every keypress (update it's supposed to do that)
         }
 
         Ok(())
@@ -353,13 +359,16 @@ impl TermHandler {
         // ui.memory_mut(|mem| mem.lock_focus(response.id, true));
 
         if response.has_focus() {
-            ui.input(|i| {
+            self.was_focused = true;
+            ui.input_mut(|i| {
                 self.manage_inputs(i, &response).iter()
                     .for_each(|res| {
                         let Err(e) = res else { return };
                         eprintln!("terminal input error {e:?}");
                     });
             });
+        } else {
+            self.was_focused = false;
         }
 
         response
@@ -383,6 +392,35 @@ impl TermHandler {
 
         let pos = ui.next_widget_position();
 
+        let mut esc = false;
+        let mut tab = false;
+
+        if self.was_focused {
+            if self.consume_escape {
+                esc = ui.input_mut(|i| i.consume_key(Modifiers::NONE, egui::Key::Escape));
+            }
+            if self.consume_tab {
+                tab = ui.input_mut(|i| i.consume_key(Modifiers::NONE, egui::Key::Tab));
+            }
+        }
+
+        {
+            use wezterm_term::KeyCode::Escape;
+            use wezterm_term::KeyCode::Tab;
+            use wezterm_term::KeyModifiers as Mod;
+            if esc {
+                self.terminal.key_down(Escape, Mod::NONE).unwrap();
+            } else {
+                self.terminal.key_up(Escape, Mod::NONE).unwrap();
+            }
+
+            if tab {
+                self.terminal.key_down(Tab, Mod::NONE).unwrap();
+            } else {
+                self.terminal.key_up(Tab, Mod::NONE).unwrap();
+            }
+        }
+
         let r = egui::ScrollArea::vertical()
             .max_height((self.size.rows + 1) as f32 * self.text_height)
             .stick_to_bottom(true)
@@ -403,7 +441,7 @@ impl TermHandler {
             egui::Rect::from_min_size(
                 egui::pos2(
                     (cursor_pos.x) as f32 * self.text_width + pos.x+ 1.,
-                    dbg!(dbg!(cursor_pos.y) as f32 * self.text_height + dbg!(pos.y))
+                    (cursor_pos.y) as f32 * self.text_height + pos.y
                 ),
                 egui::vec2(self.text_width - 2., self.text_height),
             ),

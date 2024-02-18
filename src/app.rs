@@ -36,9 +36,15 @@ impl App {
 impl eframe::App for App {
     fn update (&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            let ht = ui.available_height() / 3.;
             for (_idx, (_id, term)) in self.terminals.iter_mut().enumerate() {
-                ui.terminal(term);
-                break;
+                ui.terminal_sized(
+                    term,
+                    egui::vec2(
+                        ui.available_width(),
+                        ht,
+                    )
+                );
             }
         });
     }

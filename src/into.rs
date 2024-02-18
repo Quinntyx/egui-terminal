@@ -114,7 +114,7 @@ impl IntoWez<KeyModifiers> for Modifiers {
     fn into_wez(self) -> wezterm_term::KeyModifiers {
         let mut keymod = wezterm_term::KeyModifiers::NONE;
         keymod.set(wezterm_term::KeyModifiers::ALT, self.alt);
-        keymod.set(wezterm_term::KeyModifiers::CTRL, dbg!(self.ctrl));
+        keymod.set(wezterm_term::KeyModifiers::CTRL, self.ctrl);
         keymod.set(wezterm_term::KeyModifiers::SHIFT, self.shift);
         //keymod.set(wezterm_term::KeyModifiers::SUPER, self.command);
 
