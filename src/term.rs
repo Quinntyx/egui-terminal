@@ -247,26 +247,27 @@ impl TermHandler {
     fn event_text (&mut self, e: &Event, modifiers: Modifiers) -> TermResult {
         let Event::Text(t) = e else { unreachable!() };
 
-        // t.chars()
-        //     .try_for_each(
-        //         |c| {
-        //             self.terminal.key_down(
-        //                 wezterm_term::KeyCode::Char(c),
-        //                 modifiers.into_wez(),
-        //             )
-        //         }
-        //     ).and_then(
-        //         |_| {
-        //             t.chars().try_for_each(
-        //                 |c| {
-        //                     self.terminal.key_up(
-        //                         wezterm_term::KeyCode::Char(c),
-        //                         modifiers.into_wez(),
-        //                     )
-        //                 }
-        //             )
-        //         }
-        // )?;
+        t.chars()
+            .filter(|c| !"abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(*c))
+            .try_for_each(
+                |c| {
+                    self.terminal.key_down(
+                        wezterm_term::KeyCode::Char(c),
+                        modifiers.into_wez(),
+                    )
+                }
+            ).and_then(
+                |_| {
+                    t.chars().try_for_each(
+                        |c| {
+                            self.terminal.key_up(
+                                wezterm_term::KeyCode::Char(c),
+                                modifiers.into_wez(),
+                            )
+                        }
+                    )
+                }
+        )?;
 
         Ok(())
     }
@@ -293,7 +294,7 @@ impl TermHandler {
     }
 
     fn generate_rows (&mut self, ui: &mut Ui, rows: Range<usize>) -> Response {
-        let cursor_pos = self.terminal.cursor_pos();
+        let cursor_pos = dbg!(self.terminal.cursor_pos());
         let palette = self.terminal.get_config().color_palette();
         let size = self.size;
 
@@ -330,9 +331,6 @@ impl TermHandler {
         let mut galley_rect = galley.rect;
         galley_rect.set_width(self.text_width * size.cols as f32);
 
-        let cursor = galley.cursor_from_pos(egui::vec2(cursor_pos.x as f32, cursor_pos.y as f32));
-        let cursor_pos = galley.pos_from_cursor(&cursor);
-
         let (response, painter) = ui.allocate_painter(galley_rect.size(), egui::Sense::click_and_drag());
 
         if response.clicked() && !response.has_focus() {
@@ -349,7 +347,10 @@ impl TermHandler {
 
         painter.rect_stroke(
             egui::Rect::from_min_size(
-                cursor_pos.min,
+                egui::pos2(
+                    (cursor_pos.x as f32)* self.text_width,
+                    (cursor_pos.y as f32) * self.text_height
+                ),
                 egui::vec2(self.text_width, self.text_height),
             ),
             egui::Rounding::none(),

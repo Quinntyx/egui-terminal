@@ -104,6 +104,7 @@ impl TryIntoWez<WezKey> for Key {
             X => WezKey::Char('x'),
             Y => WezKey::Char('y'),
             Z => WezKey::Char('z'),
+            Space => WezKey::Char(' '),
             _ => return Err(TermConversionError),
         })
     }
