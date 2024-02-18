@@ -17,7 +17,7 @@ use wezterm_term::{TerminalSize, Terminal as WezTerm};
 use termwiz::cellcluster::CellCluster;
 use portable_pty::PtySize;
 
-use egui::{TextFormat, Event, Modifiers, Vec2, InputState, FontId, Response, Ui};
+use egui::{Color32, Event, FontId, InputState, Modifiers, Response, TextFormat, Ui, Vec2};
 
 use crate::into::*;
 use crate::config::definitions::TermResult;
@@ -350,7 +350,7 @@ impl TermHandler {
             palette.background.into_egui(),
         );
 
-        painter.galley(response.rect.min, galley); // herepoop
+        painter.galley(response.rect.min, galley, Color32::DEBUG_COLOR); // herepoop
 
         // if ui.memory(|mem| mem.has_focus(response.id)) {
 
@@ -445,7 +445,7 @@ impl TermHandler {
                 ),
                 egui::vec2(self.text_width - 2., self.text_height),
             ),
-            egui::Rounding::none().at_least(1.),
+            egui::Rounding::same(1.),
             egui::Color32::WHITE,
         );
 
