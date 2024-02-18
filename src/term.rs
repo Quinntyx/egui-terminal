@@ -294,7 +294,6 @@ impl TermHandler {
     }
 
     fn generate_rows (&mut self, ui: &mut Ui, rows: Range<usize>) -> Response {
-        let cursor_pos = dbg!(self.terminal.cursor_pos());
         let palette = self.terminal.get_config().color_palette();
         let size = self.size;
 
@@ -304,11 +303,13 @@ impl TermHandler {
         };
 
         let mut job = egui::text::LayoutJob::default();
+
         let mut iter = self.terminal
             .screen()
-            .lines_in_phys_range(rows)
+            .lines_in_phys_range(rows.clone())
             .into_iter()
             .peekable();
+
         while let Some(line) = iter.next() {
             line.cluster(None).iter()
                 .for_each(|c| {
@@ -343,19 +344,7 @@ impl TermHandler {
             palette.background.into_egui(),
         );
 
-        painter.galley(response.rect.min, galley);
-
-        painter.rect_stroke(
-            egui::Rect::from_min_size(
-                egui::pos2(
-                    (cursor_pos.x as f32)* self.text_width,
-                    (cursor_pos.y as f32) * self.text_height
-                ),
-                egui::vec2(self.text_width, self.text_height),
-            ),
-            egui::Rounding::none(),
-            egui::Stroke::new(1.0, egui::Color32::WHITE),
-        );
+        painter.galley(response.rect.min, galley); // herepoop
 
         // if ui.memory(|mem| mem.has_focus(response.id)) {
 
@@ -383,7 +372,7 @@ impl TermHandler {
 
         ui.spacing_mut().item_spacing = egui::Vec2::ZERO;
 
-        self.text_width = ui.fonts(|f| f.glyph_width(&egui::FontId::monospace(12.0), '?'));
+        self.text_width = ui.fonts(|f| f.glyph_width(&egui::FontId::monospace(12.0), '?')).round();
         self.text_height = ui.text_style_height(&egui::TextStyle::Monospace);
 
         self.size.cols = (widget_size.x / self.text_width) as usize;
@@ -391,6 +380,8 @@ impl TermHandler {
 
         self.resize_rc();
         self.config(ui);
+
+        let pos = ui.next_widget_position();
 
         let r = egui::ScrollArea::vertical()
             .max_height((self.size.rows + 1) as f32 * self.text_height)
@@ -404,6 +395,22 @@ impl TermHandler {
                     self.generate_rows(ui, rows)
                 }
             ).inner;
+
+
+        let painter = ui.painter_at(r.rect);
+        let cursor_pos = self.terminal.cursor_pos();
+        painter.rect_filled(
+            egui::Rect::from_min_size(
+                egui::pos2(
+                    (cursor_pos.x) as f32 * self.text_width + pos.x+ 1.,
+                    dbg!(dbg!(cursor_pos.y) as f32 * self.text_height + dbg!(pos.y))
+                ),
+                egui::vec2(self.text_width - 2., self.text_height),
+            ),
+            egui::Rounding::none().at_least(1.),
+            egui::Color32::WHITE,
+        );
+
 
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(16));
 
