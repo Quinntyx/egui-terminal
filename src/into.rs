@@ -78,6 +78,32 @@ impl TryIntoWez<WezKey> for Key {
             F18 => WezKey::Function(18),
             F19 => WezKey::Function(19),
             F20 => WezKey::Function(20),
+            A => WezKey::Char('a'),
+            B => WezKey::Char('b'),
+            C => WezKey::Char('c'),
+            D => WezKey::Char('d'),
+            E => WezKey::Char('e'),
+            F => WezKey::Char('f'),
+            G => WezKey::Char('g'),
+            H => WezKey::Char('h'),
+            I => WezKey::Char('i'),
+            J => WezKey::Char('j'),
+            K => WezKey::Char('k'),
+            L => WezKey::Char('l'),
+            M => WezKey::Char('m'),
+            N => WezKey::Char('n'),
+            O => WezKey::Char('o'),
+            P => WezKey::Char('p'),
+            Q => WezKey::Char('q'),
+            R => WezKey::Char('r'),
+            S => WezKey::Char('s'),
+            T => WezKey::Char('t'),
+            U => WezKey::Char('u'),
+            V => WezKey::Char('v'),
+            W => WezKey::Char('w'),
+            X => WezKey::Char('x'),
+            Y => WezKey::Char('y'),
+            Z => WezKey::Char('z'),
             _ => return Err(TermConversionError),
         })
     }
@@ -87,7 +113,7 @@ impl IntoWez<KeyModifiers> for Modifiers {
     fn into_wez(self) -> wezterm_term::KeyModifiers {
         let mut keymod = wezterm_term::KeyModifiers::NONE;
         keymod.set(wezterm_term::KeyModifiers::ALT, self.alt);
-        keymod.set(wezterm_term::KeyModifiers::CTRL, self.ctrl);
+        keymod.set(wezterm_term::KeyModifiers::CTRL, dbg!(self.ctrl));
         keymod.set(wezterm_term::KeyModifiers::SHIFT, self.shift);
         //keymod.set(wezterm_term::KeyModifiers::SUPER, self.command);
 

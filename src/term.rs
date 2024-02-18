@@ -232,35 +232,41 @@ impl TermHandler {
 
         if let Ok(key) = key.try_into_wez() {
             if *pressed {
-                self.terminal.key_down(key, modifiers.into_wez())?;
+                dbg!(self.terminal.key_down(dbg!(key), dbg!(modifiers.into_wez()))?);
             } else {
                 self.terminal.key_up(key, modifiers.into_wez())?;
             }
         } else {
-            // dbg!(e); @todo figure out why this prints almost every keypress
+            // dbg!(e); // @todo figure out why this prints almost every keypress
         }
 
         Ok(())
     }
 
+    #[allow(unused_variables)]
     fn event_text (&mut self, e: &Event, modifiers: Modifiers) -> TermResult {
         let Event::Text(t) = e else { unreachable!() };
 
-        t.chars()
-        .try_for_each(|c| {
-            self.terminal.key_down(
-                wezterm_term::KeyCode::Char(c),
-                modifiers.into_wez(),
-            )
-        })
-        .and_then(|_| {
-            t.chars().try_for_each(|c| {
-                self.terminal.key_up(
-                    wezterm_term::KeyCode::Char(c),
-                    modifiers.into_wez(),
-                )
-            })
-        })?;
+        // t.chars()
+        //     .try_for_each(
+        //         |c| {
+        //             self.terminal.key_down(
+        //                 wezterm_term::KeyCode::Char(c),
+        //                 modifiers.into_wez(),
+        //             )
+        //         }
+        //     ).and_then(
+        //         |_| {
+        //             t.chars().try_for_each(
+        //                 |c| {
+        //                     self.terminal.key_up(
+        //                         wezterm_term::KeyCode::Char(c),
+        //                         modifiers.into_wez(),
+        //                     )
+        //                 }
+        //             )
+        //         }
+        // )?;
 
         Ok(())
     }
