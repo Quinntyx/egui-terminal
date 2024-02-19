@@ -4,6 +4,7 @@
 // You can find her on Github, she does good work; This project is based on luminol-term, from the
 // Luminol project, at https://github.com/Astrabit-ST/Luminol. Go check it out!
 
+use std::fmt::Debug;
 use std::io::prelude::*;
 use std::sync::Arc;
 use std::ops::Range;
@@ -37,6 +38,12 @@ pub struct TermHandler {
     text_width: f32,
     text_height: f32,
     size: TerminalSize,
+}
+
+impl Debug for TermHandler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("TermHandler")
+    }
 }
 
 impl Drop for TermHandler {
