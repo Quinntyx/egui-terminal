@@ -18,11 +18,12 @@ use wezterm_term::{TerminalSize, Terminal as WezTerm};
 use termwiz::cellcluster::CellCluster;
 use portable_pty::PtySize;
 
-use egui::{Color32, Event, FontId, InputState, Modifiers, Response, TextFormat, Ui, Vec2};
+use egui::{pos2, Color32, Event, FontId, InputState, Mesh, Modifiers, Response, Shape, TextFormat, Ui, Vec2};
 
 use crate::into::*;
 use crate::config::definitions::TermResult;
 use crate::config::term_config::{Config, Style};
+use crate::render;
 
 pub struct TermHandler {
     terminal: WezTerm,
@@ -32,6 +33,7 @@ pub struct TermHandler {
     consume_tab: bool,
     consume_escape: bool,
     was_focused: bool,
+    cursor_trail_position: egui::Pos2,
 
     child: Box<dyn portable_pty::Child + Send + Sync>,
     pair: portable_pty::PtyPair,
@@ -109,6 +111,7 @@ impl TermHandler {
             consume_escape: true,
             consume_tab: true,
             was_focused: false,
+            cursor_trail_position: pos2(0., 0.),
             reader: reciever,
             child,
             pair,
@@ -444,17 +447,46 @@ impl TermHandler {
 
         let painter = ui.painter_at(r.rect);
         let cursor_pos = self.terminal.cursor_pos();
-        painter.rect_filled(
-            egui::Rect::from_min_size(
-                egui::pos2(
-                    (cursor_pos.x) as f32 * self.text_width + pos.x+ 1.,
-                    (cursor_pos.y) as f32 * self.text_height + pos.y
-                ),
-                egui::vec2(self.text_width - 2., self.text_height),
+
+        let cursor_rect = egui::Rect::from_min_size(
+            egui::pos2(
+                (cursor_pos.x) as f32 * self.text_width + pos.x+ 1.,
+                (cursor_pos.y) as f32 * self.text_height + pos.y
             ),
+            egui::vec2(self.text_width - 2., self.text_height),
+        );
+
+        painter.rect_filled(
+            cursor_rect,
             egui::Rounding::same(1.),
             egui::Color32::WHITE,
         );
+
+        painter.add(render::triangle(
+            cursor_rect.left_top(),
+            cursor_rect.right_top(),
+            self.cursor_trail_position,
+        ));
+
+        painter.add(render::triangle(
+            cursor_rect.left_top(),
+            cursor_rect.left_bottom(),
+            self.cursor_trail_position,
+        ));
+
+        painter.add(render::triangle(
+            cursor_rect.right_top(),
+            cursor_rect.right_bottom(),
+            self.cursor_trail_position,
+        ));
+
+        painter.add(render::triangle(
+            cursor_rect.right_bottom(),
+            cursor_rect.left_bottom(),
+            self.cursor_trail_position,
+        ));
+
+        self.cursor_trail_position = self.cursor_trail_position.lerp(cursor_rect.center(), 0.2);
 
 
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(16));

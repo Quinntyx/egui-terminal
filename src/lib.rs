@@ -3,6 +3,7 @@ pub mod error;
 pub mod config;
 pub mod term;
 pub mod prelude;
+pub mod render;
 
 use egui::{Widget, Ui, Response, Vec2};
 
