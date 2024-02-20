@@ -18,7 +18,7 @@ use wezterm_term::{TerminalSize, Terminal as WezTerm};
 use termwiz::cellcluster::CellCluster;
 use portable_pty::PtySize;
 
-use egui::{pos2, Color32, Event, FontId, InputState, Mesh, Modifiers, Response, Shape, TextFormat, Ui, Vec2};
+use egui::{pos2, vec2, Color32, Event, FontId, InputState, Mesh, Modifiers, Response, Shape, TextFormat, Ui, Vec2};
 
 use crate::into::*;
 use crate::config::definitions::TermResult;
@@ -462,31 +462,35 @@ impl TermHandler {
             egui::Color32::WHITE,
         );
 
-        painter.add(render::triangle(
+        painter.add(render::quad(
             cursor_rect.left_top(),
             cursor_rect.right_top(),
             self.cursor_trail_position,
+            self.cursor_trail_position + vec2(self.text_width - 2., 0.),
         ));
 
-        painter.add(render::triangle(
+        painter.add(render::quad(
             cursor_rect.left_top(),
             cursor_rect.left_bottom(),
             self.cursor_trail_position,
+            self.cursor_trail_position + vec2(0., self.text_height),
         ));
 
-        painter.add(render::triangle(
+        painter.add(render::quad(
             cursor_rect.right_top(),
             cursor_rect.right_bottom(),
-            self.cursor_trail_position,
+            self.cursor_trail_position + vec2(self.text_width - 2., 0.),
+            self.cursor_trail_position + vec2(self.text_width - 2., self.text_height),
         ));
 
-        painter.add(render::triangle(
+        painter.add(render::quad(
             cursor_rect.right_bottom(),
             cursor_rect.left_bottom(),
-            self.cursor_trail_position,
+            self.cursor_trail_position + vec2(self.text_width - 2., self.text_height),
+            self.cursor_trail_position + vec2(0., self.text_height),
         ));
 
-        self.cursor_trail_position = self.cursor_trail_position.lerp(cursor_rect.center(), 0.2);
+        self.cursor_trail_position = self.cursor_trail_position.lerp(cursor_rect.left_top(), 0.2);
 
 
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(16));
