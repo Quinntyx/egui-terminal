@@ -18,7 +18,7 @@ use wezterm_term::{TerminalSize, Terminal as WezTerm};
 use termwiz::cellcluster::CellCluster;
 use portable_pty::PtySize;
 
-use egui::{pos2, vec2, Color32, Event, FontId, InputState, Mesh, Modifiers, Response, Shape, TextFormat, Ui, Vec2};
+use egui::{pos2, Color32, Event, FontId, InputState, Modifiers, Rect, Response, TextFormat, Ui, Vec2};
 
 use crate::into::*;
 use crate::config::definitions::TermResult;
@@ -33,7 +33,7 @@ pub struct TermHandler {
     consume_tab: bool,
     consume_escape: bool,
     was_focused: bool,
-    cursor_trail_position: egui::Pos2,
+    cursor_trail_rect: Rect,
 
     child: Box<dyn portable_pty::Child + Send + Sync>,
     pair: portable_pty::PtyPair,
@@ -111,7 +111,7 @@ impl TermHandler {
             consume_escape: true,
             consume_tab: true,
             was_focused: false,
-            cursor_trail_position: pos2(0., 0.),
+            cursor_trail_rect: Rect::from_points(&[pos2(0., 0.)]),
             reader: reciever,
             child,
             pair,
@@ -462,36 +462,13 @@ impl TermHandler {
             egui::Color32::WHITE,
         );
 
-        painter.add(render::quad(
-            cursor_rect.left_top(),
-            cursor_rect.right_top(),
-            self.cursor_trail_position,
-            self.cursor_trail_position + vec2(self.text_width - 2., 0.),
+        painter.add(render::quad_trail(
+            cursor_rect,
+            self.cursor_trail_rect,
+            Color32::from_rgba_unmultiplied(255, 255, 255, 10),
         ));
 
-        painter.add(render::quad(
-            cursor_rect.left_top(),
-            cursor_rect.left_bottom(),
-            self.cursor_trail_position,
-            self.cursor_trail_position + vec2(0., self.text_height),
-        ));
-
-        painter.add(render::quad(
-            cursor_rect.right_top(),
-            cursor_rect.right_bottom(),
-            self.cursor_trail_position + vec2(self.text_width - 2., 0.),
-            self.cursor_trail_position + vec2(self.text_width - 2., self.text_height),
-        ));
-
-        painter.add(render::quad(
-            cursor_rect.right_bottom(),
-            cursor_rect.left_bottom(),
-            self.cursor_trail_position + vec2(self.text_width - 2., self.text_height),
-            self.cursor_trail_position + vec2(0., self.text_height),
-        ));
-
-        self.cursor_trail_position = self.cursor_trail_position.lerp(cursor_rect.left_top(), 0.2);
-
+        self.cursor_trail_rect = self.cursor_trail_rect.lerp_towards(&cursor_rect, 0.2);
 
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(16));
 

@@ -8,8 +8,11 @@ use crate::into::IntoWez;
 
 #[derive(Debug, Default)]
 pub struct Style {
-    bg_color: Option<Color32>,
-    fg_color: Option<Color32>,
+    pub bg_color: Option<Color32>,
+    pub fg_color: Option<Color32>,
+    pub cursor_color: Option<Color32>,
+    pub cursor_trail: bool,
+    pub cursor_trail_color: bool,
 }
 
 impl Style {
