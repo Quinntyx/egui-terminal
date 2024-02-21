@@ -85,8 +85,8 @@ impl SimpleMeshBuilder for Mesh {
 }
 
 pub enum CursorType {
-    Block,
-    Beam,
+    Block(Color32),
+    Beam(Color32),
     OpenBlock(Color32),
     None
 }
@@ -97,6 +97,7 @@ pub struct CursorRenderer {
     cursor_rect: Rect,
     pub cursor_type: CursorType,
     widget_offset: Vec2,
+    stable_time_factor: f64,
 }
 
 impl CursorRenderer {
@@ -105,8 +106,9 @@ impl CursorRenderer {
             cursor_trail_source: Rect::from_points(&[pos2(0., 0.)]),
             draw_trail: true,
             cursor_rect: Rect::from_points(&[pos2(0., 0.)]),
-            cursor_type: CursorType::Block,
+            cursor_type: CursorType::Block(Color32::TRANSPARENT),
             widget_offset: vec2(0., 0.),
+            stable_time_factor: 0.,
         }
     }
 
@@ -116,14 +118,14 @@ impl CursorRenderer {
 
     pub fn update_cursor_rect (&mut self, ur: CursorPosition, text_width: f32, text_height: f32) {
         let cursor_rect = match &self.cursor_type {
-            &CursorType::Block => Rect::from_min_size(  
+            &CursorType::Block(_) => Rect::from_min_size(  
                 egui::pos2(
                     (ur.x) as f32 * text_width + self.widget_offset.x+ 1.,
                     (ur.y) as f32 * text_height + self.widget_offset.y
                 ),
                 egui::vec2(text_width - 2., text_height),
             ),
-            &CursorType::Beam => Rect::from_min_size(
+            &CursorType::Beam(_) => Rect::from_min_size(
                 egui::pos2(
                     (ur.x) as f32 * text_width + self.widget_offset.x+ 1.,
                     (ur.y) as f32 * text_height + self.widget_offset.y
@@ -149,13 +151,25 @@ impl CursorRenderer {
         self.cursor_rect = cursor_rect;
     }
 
-    pub fn draw_cursor (&mut self, painter: Painter) {
+    fn get_color (&self) -> Color32 {
+        let (alpha, color) = match &self.cursor_type {
+            &CursorType::Block(c) => dbg!(((self.stable_time_factor / std::f64::consts::FRAC_PI_2 * 13.).sin() + 1.) / 2., c),
+            &CursorType::OpenBlock(c) => (0., c),
+            &CursorType::Beam(c) => (1., c),
+            &CursorType::None => (0., Color32::TRANSPARENT),
+        };
+        
+        color.gamma_multiply(alpha as f32)
+    }
+
+    pub fn draw_cursor (&mut self, painter: Painter, delta_time: f32) {
+        self.stable_time_factor += delta_time as f64;
         if matches!(self.cursor_type, CursorType::None) { return; }
 
         painter.rect(
             self.cursor_rect,
             egui::Rounding::same(1.),
-            match &self.cursor_type { &CursorType::OpenBlock(c) => c, _ => Color32::WHITE, },
+            self.get_color(),
             egui::Stroke::new(1., Color32::WHITE),
         );
     
@@ -169,6 +183,6 @@ impl CursorRenderer {
     }
 
     pub fn update_cursor_trail (&mut self, f: f32) {
-        self.cursor_trail_source.lerp_towards(&self.cursor_rect, f);
+        self.cursor_trail_source = self.cursor_trail_source.lerp_towards(&self.cursor_rect, f);
     }
 }

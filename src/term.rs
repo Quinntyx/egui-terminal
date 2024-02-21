@@ -14,7 +14,7 @@ pub use portable_pty::CommandBuilder;
 pub use termwiz::Error;
 
 use crossbeam_channel::{unbounded, Receiver};
-use wezterm_term::{TerminalSize, Terminal as WezTerm};
+use wezterm_term::{Terminal as WezTerm, TerminalConfiguration, TerminalSize};
 use termwiz::cellcluster::CellCluster;
 use portable_pty::PtySize;
 
@@ -23,7 +23,7 @@ use egui::{Color32, Event, FontId, InputState, Modifiers, Response, TextFormat, 
 use crate::into::*;
 use crate::config::definitions::TermResult;
 use crate::config::term_config::{Config, Style};
-use crate::render::CursorRenderer;
+use crate::render::{CursorRenderer, CursorType};
 
 pub struct TermHandler {
     terminal: WezTerm,
@@ -394,6 +394,12 @@ impl TermHandler {
             self.terminal.perform_actions(actions);
         }
 
+        if self.was_focused {
+            self.cursor_renderer.cursor_type = CursorType::Block(Color32::WHITE);
+        } else {
+            self.cursor_renderer.cursor_type = CursorType::OpenBlock(self.wez_config.color_palette().background.into_egui())
+        }
+
         ui.spacing_mut().item_spacing = egui::Vec2::ZERO;
 
         self.text_width = ui.fonts(|f| f.glyph_width(&egui::FontId::monospace(12.0), '?')).round();
@@ -450,7 +456,7 @@ impl TermHandler {
             ).inner;
 
         self.cursor_renderer.update_cursor_rect(self.terminal.cursor_pos(), self.text_width, self.text_height);
-        self.cursor_renderer.draw_cursor(ui.painter_at(r.rect));
+        self.cursor_renderer.draw_cursor(ui.painter_at(r.rect), ui.input(|i| i.stable_dt.min(0.1)));
         self.cursor_renderer.update_cursor_trail(0.2);
 
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(16));
