@@ -18,12 +18,12 @@ use wezterm_term::{TerminalSize, Terminal as WezTerm};
 use termwiz::cellcluster::CellCluster;
 use portable_pty::PtySize;
 
-use egui::{pos2, Color32, Event, FontId, InputState, Modifiers, Rect, Response, TextFormat, Ui, Vec2};
+use egui::{Color32, Event, FontId, InputState, Modifiers, Response, TextFormat, Ui, Vec2};
 
 use crate::into::*;
 use crate::config::definitions::TermResult;
 use crate::config::term_config::{Config, Style};
-use crate::render;
+use crate::render::CursorRenderer;
 
 pub struct TermHandler {
     terminal: WezTerm,
@@ -33,7 +33,7 @@ pub struct TermHandler {
     consume_tab: bool,
     consume_escape: bool,
     was_focused: bool,
-    cursor_trail_rect: Rect,
+    cursor_renderer: CursorRenderer,
 
     child: Box<dyn portable_pty::Child + Send + Sync>,
     pair: portable_pty::PtyPair,
@@ -50,7 +50,7 @@ impl Debug for TermHandler {
 
 impl Drop for TermHandler {
     fn drop(&mut self) {
-        self.kill()
+        self.kill();
     }
 }
 
@@ -111,7 +111,8 @@ impl TermHandler {
             consume_escape: true,
             consume_tab: true,
             was_focused: false,
-            cursor_trail_rect: Rect::from_points(&[pos2(0., 0.)]),
+            // cursor_trail_rect: Rect::from_points(&[pos2(0., 0.)]),
+            cursor_renderer: CursorRenderer::new(),
             reader: reciever,
             child,
             pair,
@@ -263,6 +264,10 @@ impl TermHandler {
     fn event_text (&mut self, e: &Event, modifiers: Modifiers) -> TermResult {
         let Event::Text(t) = e else { unreachable!() };
 
+        if t == "exit" {
+            panic!("it fucking doesnt exist anymore what do you want from me");
+        }
+
         t.chars()
             .filter(|c| !"abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(*c))
             .try_for_each(
@@ -400,7 +405,7 @@ impl TermHandler {
         self.resize_rc();
         self.config(ui);
 
-        let pos = ui.next_widget_position();
+        self.cursor_renderer.set_offset(ui.next_widget_position().to_vec2());
 
         let mut esc = false;
         let mut tab = false;
@@ -444,31 +449,9 @@ impl TermHandler {
                 }
             ).inner;
 
-
-        let painter = ui.painter_at(r.rect);
-        let cursor_pos = self.terminal.cursor_pos();
-
-        let cursor_rect = egui::Rect::from_min_size(
-            egui::pos2(
-                (cursor_pos.x) as f32 * self.text_width + pos.x+ 1.,
-                (cursor_pos.y) as f32 * self.text_height + pos.y
-            ),
-            egui::vec2(self.text_width - 2., self.text_height),
-        );
-
-        painter.rect_filled(
-            cursor_rect,
-            egui::Rounding::same(1.),
-            egui::Color32::WHITE,
-        );
-
-        painter.add(render::quad_trail(
-            cursor_rect,
-            self.cursor_trail_rect,
-            Color32::from_rgba_unmultiplied(255, 255, 255, 10),
-        ));
-
-        self.cursor_trail_rect = self.cursor_trail_rect.lerp_towards(&cursor_rect, 0.2);
+        self.cursor_renderer.update_cursor_rect(self.terminal.cursor_pos(), self.text_width, self.text_height);
+        self.cursor_renderer.draw_cursor(ui.painter_at(r.rect));
+        self.cursor_renderer.update_cursor_trail(0.2);
 
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(16));
 
@@ -501,6 +484,12 @@ impl TermHandler {
         if *self.wez_config == *self.style.generate_wez_config(ui) { return; }
         self.wez_config = self.style.generate_wez_config(ui).clone();
         self.terminal.set_config(self.wez_config.clone());
+    }
+
+    // @todo fix this it doesnt do what it says it does
+    #[deprecated(since="0.3", note="dont use it just fucking dont its not done")]
+    pub fn is_closed (&self) -> bool {
+        false
     }
 }
 

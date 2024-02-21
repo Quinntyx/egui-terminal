@@ -36,6 +36,13 @@ impl App {
 impl eframe::App for App {
     fn update (&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.label(format!(
+                "Terminals Closed: {}, {}, {}", 
+                self.terminals.get("root").unwrap().is_closed(),
+                self.terminals.get("root2").unwrap().is_closed(),
+                self.terminals.get("root3").unwrap().is_closed(),
+            ));
+
             let ht = ui.available_height() / 3.;
             for (_idx, (_id, term)) in self.terminals.iter_mut().enumerate() {
                 ui.terminal_sized(

@@ -46,5 +46,9 @@ impl<'a> Terminal<'a> {
         self.style = style;
         self
     }
+
+    pub fn is_closed (&self) -> bool {
+        self.terminal.is_closed()
+    }
 }
 
