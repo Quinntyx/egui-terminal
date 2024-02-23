@@ -11,7 +11,7 @@ description = "An embedded terminal emulator widget for egui."
 crossbeam-channel = "0.5.8"
 eframe = "0.26"
 egui = "0.26"
+portable-pty = "0.8.1"
 wezterm-term = { version = "0.1.0", git = "https://github.com/wez/wezterm", rev = "3666303c7b26c6c966b3f136dbb954686d334cc3" }
-portable-pty = { version = "0.8.1", git = "https://github.com/wez/wezterm", rev = "3666303c7b26c6c966b3f136dbb954686d334cc3" }
 termwiz = { version = "0.22.0", git = "https://github.com/wez/wezterm", rev = "3666303c7b26c6c966b3f136dbb954686d334cc3" }
 

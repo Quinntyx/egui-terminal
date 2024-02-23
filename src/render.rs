@@ -153,7 +153,7 @@ impl CursorRenderer {
 
     fn get_color (&self) -> Color32 {
         let (alpha, color) = match &self.cursor_type {
-            &CursorType::Block(c) => dbg!(((self.stable_time_factor / std::f64::consts::FRAC_PI_2 * 13.).sin() + 1.) / 2., c),
+            &CursorType::Block(c) => (((self.stable_time_factor / std::f64::consts::FRAC_PI_2 * 13.).sin() + 1.) / 2., c),
             &CursorType::OpenBlock(c) => (0., c),
             &CursorType::Beam(c) => (1., c),
             &CursorType::None => (0., Color32::TRANSPARENT),
