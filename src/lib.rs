@@ -47,8 +47,8 @@ impl<'a> Terminal<'a> {
         self
     }
 
-    pub fn is_closed (&self) -> bool {
-        self.terminal.is_closed()
+    pub fn exit_status (&mut self) -> Option<u32> {
+        self.terminal.exit_status()
     }
 }
 

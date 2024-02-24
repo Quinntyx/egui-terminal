@@ -14,4 +14,5 @@ egui = "0.26"
 portable-pty = "0.8.1"
 wezterm-term = { version = "0.1.0", git = "https://github.com/wez/wezterm", rev = "3666303c7b26c6c966b3f136dbb954686d334cc3" }
 termwiz = { version = "0.22.0", git = "https://github.com/wez/wezterm", rev = "3666303c7b26c6c966b3f136dbb954686d334cc3" }
+sysinfo = "0.30.5"
 

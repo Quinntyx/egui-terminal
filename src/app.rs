@@ -37,10 +37,17 @@ impl eframe::App for App {
     fn update (&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.label(format!(
-                "Terminals Closed: {}, {}, {}", 
-                self.terminals.get("root").unwrap().is_closed(),
-                self.terminals.get("root2").unwrap().is_closed(),
-                self.terminals.get("root3").unwrap().is_closed(),
+                "Terminals Closed: {:?}, {:?}, {:?}", 
+                self.terminals.get_mut("root").unwrap().exit_status(),
+                self.terminals.get_mut("root2").unwrap().exit_status(),
+                self.terminals.get_mut("root3").unwrap().exit_status(),
+            ));
+
+            ui.label(format!(
+                "Terminal Titles: {}, {}, {}", 
+                self.terminals.get_mut("root").unwrap().title("test"),
+                self.terminals.get_mut("root2").unwrap().title("test"),
+                self.terminals.get_mut("root3").unwrap().title("test"),
             ));
 
             let ht = ui.available_height() / 3.;

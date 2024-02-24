@@ -40,6 +40,7 @@ pub struct TermHandler {
     text_width: f32,
     text_height: f32,
     size: TerminalSize,
+    system: sysinfo::System,
 }
 
 impl Debug for TermHandler {
@@ -119,11 +120,24 @@ impl TermHandler {
             text_width: 0.0,
             text_height: 0.0,
             size: TerminalSize::default(),
+            system: sysinfo::System::new(),
         })
     }
 
-    pub fn title (&self, title: &str) -> String {
-        self.terminal.get_title().replace("wezterm", title)
+    pub fn title (&mut self, title: &str) -> String {
+        if self.exit_status().is_some() { return String::from("") }
+        if let Some(pid) = self.child.process_id() {
+            let pid = sysinfo::Pid::from_u32(pid);
+            if dbg!(self.system.refresh_process(pid)) {
+                self.system.process(pid)
+                    .map(|p| p.name())
+                    .unwrap_or(title)
+            } else {
+                title
+            }
+        } else {
+            title
+        }.to_owned()
     }
 
     pub fn id (&self) -> egui::Id {
@@ -492,10 +506,9 @@ impl TermHandler {
         self.terminal.set_config(self.wez_config.clone());
     }
 
-    // @todo fix this it doesnt do what it says it does
-    #[deprecated(since="0.3", note="dont use it just fucking dont its not done")]
-    pub fn is_closed (&self) -> bool {
-        false
+    pub fn exit_status (&mut self) -> Option<u32> {
+        self.child.try_wait().expect("it shouldnt crash here (seriously if this comes up im just confused)")
+            .map(|c| c.exit_code())
     }
 }
 
