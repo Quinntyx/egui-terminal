@@ -10,7 +10,7 @@ use wezterm_term::color::ColorPalette;
 use crate::{into::IntoWez, render::CursorType};
 
 /// please make the font monospace or everything breaks :D
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Style {
     pub bg_color: Option<Color32>,
