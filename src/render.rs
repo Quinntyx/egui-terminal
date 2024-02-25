@@ -1,7 +1,10 @@
-use egui::{pos2, vec2, Color32, Mesh, Painter, Pos2, Rect, Vec2};
+use egui::{pos2, vec2, Color32, Mesh, Painter, Pos2, Rect, Stroke, Vec2};
 use egui::epaint::Vertex;
 use termwiz::surface::CursorVisibility;
 use wezterm_term::CursorPosition;
+
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
 
 fn pos2_to_vertex (a: Pos2, c: Color32) -> Vertex {
     let mut v = Vertex::default();
@@ -32,40 +35,48 @@ pub fn quad (a: Pos2, b: Pos2, c: Pos2, d: Pos2, color: Color32) -> Mesh {
     m
 }
 
-pub fn quad_trail (a: Rect, b: Rect, color: Color32) -> Mesh {
+pub fn quad_trail (cursor: Rect, trail: Rect, color: Color32) -> Mesh {
     let mut m = Mesh::default();
 
-    m.append(quad(
-        a.left_top(),
-        a.right_top(),
-        b.left_top(),
-        b.right_top(),
-        color
-    ));
+    if cursor.top() > trail.top() {
+        m.add_quad_simple(
+            cursor.left_top(),
+            cursor.right_top(),
+            trail.left_top(),
+            trail.right_top(),
+            color
+        );
+    }
 
-    m.append(quad(
-        a.right_top(),
-        a.right_bottom(),
-        b.right_top(),
-        b.right_bottom(),
-        color
-    ));
+    if cursor.right() < trail.right() {
+        m.add_quad_simple(
+            cursor.right_top(),
+            cursor.right_bottom(),
+            trail.right_top(),
+            trail.right_bottom(),
+            color
+        );
+    }
 
-    m.append(quad(
-        a.right_bottom(),
-        a.left_bottom(),
-        b.right_bottom(),
-        b.left_bottom(),
-        color
-    ));
+    if cursor.bottom() < trail.bottom() {
+        m.add_quad_simple(
+            cursor.right_bottom(),
+            cursor.left_bottom(),
+            trail.right_bottom(),
+            trail.left_bottom(),
+            color
+        );
+    }
 
-    m.append(quad(
-        a.left_top(),
-        a.left_bottom(),
-        b.left_top(),
-        b.left_bottom(),
-        color
-    ));
+    if cursor.left() > trail.left() {
+        m.add_quad_simple(
+            cursor.left_top(),
+            cursor.left_bottom(),
+            trail.left_top(),
+            trail.left_bottom(),
+            color
+        );
+    }
 
     m
 }
@@ -85,10 +96,14 @@ impl SimpleMeshBuilder for Mesh {
     }
 }
 
+#[derive(Debug, Copy, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum CursorType {
     Block(Color32),
+    SolidBlock(Color32),
     Beam(Color32),
     OpenBlock(Color32),
+    #[default]
     None
 }
 
@@ -100,6 +115,8 @@ pub struct CursorRenderer {
     visible: bool,
     widget_offset: Vec2,
     stable_time_factor: f64,
+    pub trail_color: Option<Color32>,
+    pub cursor_stroke: Stroke,
 }
 
 impl CursorRenderer {
@@ -112,6 +129,8 @@ impl CursorRenderer {
             visible: true,
             widget_offset: vec2(0., 0.),
             stable_time_factor: 0.,
+            trail_color: None,
+            cursor_stroke: Stroke::NONE,
         }
     }
 
@@ -123,7 +142,7 @@ impl CursorRenderer {
         self.visible = cur.visibility == CursorVisibility::Visible;
 
         let cursor_rect = match &self.cursor_type {
-            &CursorType::Block(_) => Rect::from_min_size(  
+            &CursorType::Block(_) | &CursorType::SolidBlock(_) | &CursorType::OpenBlock(_) | &CursorType::None => Rect::from_min_size(  
                 egui::pos2(
                     (cur.x) as f32 * text_width + self.widget_offset.x+ 1.,
                     (cur.y) as f32 * text_height + self.widget_offset.y
@@ -137,28 +156,21 @@ impl CursorRenderer {
                 ),
                 egui::vec2(text_width - 4., text_height),
             ),
-            &CursorType::OpenBlock(_) => Rect::from_min_size(  
-                egui::pos2(
-                    (cur.x) as f32 * text_width + self.widget_offset.x+ 1.,
-                    (cur.y) as f32 * text_height + self.widget_offset.y
-                ),
-                egui::vec2(text_width - 2., text_height),
-            ),
-            &CursorType::None => Rect::from_min_size(  
-                egui::pos2(
-                    (cur.x) as f32 * text_width + self.widget_offset.x+ 1.,
-                    (cur.y) as f32 * text_height + self.widget_offset.y
-                ),
-                egui::vec2(text_width - 2., text_height),
-            ),
         };
 
         self.cursor_rect = cursor_rect;
     }
 
+    fn get_trail_color (&self) -> Color32 {
+        self.trail_color.unwrap_or_else(|| {
+            self.get_color().gamma_multiply(0.5)
+        })
+    }
+
     fn get_color (&self) -> Color32 {
         let (alpha, color) = match &self.cursor_type {
             &CursorType::Block(c) => (((self.stable_time_factor / std::f64::consts::FRAC_PI_2 * 13.).sin() + 1.) / 2., c),
+            &CursorType::SolidBlock(c) => (1., c),
             &CursorType::OpenBlock(c) => (0., c),
             &CursorType::Beam(c) => (1., c),
             &CursorType::None => (0., Color32::TRANSPARENT),
@@ -176,14 +188,14 @@ impl CursorRenderer {
             self.cursor_rect,
             egui::Rounding::same(1.),
             self.get_color(),
-            egui::Stroke::new(1., Color32::WHITE),
+            self.cursor_stroke,
         );
     
         if self.draw_trail {
             painter.add(quad_trail(
                 self.cursor_rect,
                 self.cursor_trail_source,
-                Color32::from_rgba_unmultiplied(255, 255, 255, 10),
+                self.get_trail_color(),
             ));
         }
     }

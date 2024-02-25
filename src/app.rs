@@ -2,6 +2,11 @@ use std::collections::HashMap;
 use std::env::args;
 
 use eframe::{egui, CreationContext};
+use egui::Color32;
+use egui::FontId;
+use egui::Stroke;
+use egui_terminal::render::CursorType;
+use egui_terminal::Style;
 use egui_terminal::prelude::*;
 
 
@@ -35,6 +40,32 @@ impl App {
 
 impl eframe::App for App {
     fn update (&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        {
+            let s1 = self.terminals.get_mut("root").unwrap().style_mut();
+            s1.cursor_trail = true;
+            s1.cursor_trail_color = Some(Color32::LIGHT_BLUE.gamma_multiply(0.5));
+            s1.default_focus_cursor = CursorType::OpenBlock(Color32::RED);
+            s1.default_unfocus_cursor = CursorType::None;
+            s1.cursor_stroke = Stroke::new(1., Color32::WHITE);
+            s1.font = FontId::monospace(6.);
+        }
+        {
+            let s2 = self.terminals.get_mut("root2").unwrap().style_mut();
+            s2.cursor_trail = true;
+            s2.cursor_trail_color = Some(Color32::RED.gamma_multiply(0.5));
+            s2.default_focus_cursor = CursorType::Beam(Color32::RED);
+            s2.default_unfocus_cursor = CursorType::Block(Color32::GREEN);
+            s2.cursor_stroke = Stroke::new(2., Color32::YELLOW);
+            s2.font = FontId::proportional(12.);
+        }
+        {
+            let s3 = self.terminals.get_mut("root3").unwrap().style_mut();
+            s3.cursor_trail = true;
+            s3.cursor_trail_color = None;
+            s3.default_focus_cursor = CursorType::Beam(Color32::WHITE);
+            s3.default_unfocus_cursor = CursorType::None;
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.label(format!(
                 "Terminals Closed: {:?}, {:?}, {:?}", 

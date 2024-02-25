@@ -28,7 +28,7 @@ use crate::render::{CursorRenderer, CursorType};
 pub struct TermHandler {
     terminal: WezTerm,
     reader: Receiver<Vec<termwiz::escape::Action>>,
-    style: Style,
+    pub style: Style,
     wez_config: Arc<Config>,
     consume_tab: bool,
     consume_escape: bool,
@@ -176,7 +176,7 @@ impl TermHandler {
         };
         
         egui::TextFormat {
-            font_id: egui::FontId::monospace(12.0),
+            font_id: self.style.font.clone(),
             color: fg_color,
             background: bg_color,
             italics: cluster.attrs.italic(),
@@ -379,7 +379,7 @@ impl TermHandler {
             palette.background.into_egui(),
         );
 
-        painter.galley(response.rect.min, galley, Color32::DEBUG_COLOR); // herepoop
+        painter.galley(response.rect.min, galley, Color32::DEBUG_COLOR);
 
         // if ui.memory(|mem| mem.has_focus(response.id)) {
 
@@ -409,15 +409,14 @@ impl TermHandler {
         }
 
         if self.was_focused {
-            self.cursor_renderer.cursor_type = CursorType::Block(Color32::WHITE);
+            self.cursor_renderer.cursor_type = self.style.default_focus_cursor // CursorType::Block(Color32::WHITE);
         } else {
-            self.cursor_renderer.cursor_type = CursorType::OpenBlock(self.wez_config.color_palette().background.into_egui())
+            self.cursor_renderer.cursor_type = self.style.default_unfocus_cursor // CursorType::OpenBlock(self.wez_config.color_palette().background.into_egui())
         }
 
         ui.spacing_mut().item_spacing = egui::Vec2::ZERO;
 
-        self.text_width = ui.fonts(|f| f.glyph_width(&egui::FontId::monospace(12.0), '?')).round();
-        self.text_height = ui.text_style_height(&egui::TextStyle::Monospace);
+        (self.text_width, self.text_height) = ui.fonts(|f| (f.glyph_width(&self.style.font, '?').round(), f.row_height(&self.style.font).round()));
 
         self.size.cols = (widget_size.x / self.text_width) as usize;
         self.size.rows = (widget_size.y / self.text_height) as usize;
@@ -426,6 +425,9 @@ impl TermHandler {
         self.config(ui);
 
         self.cursor_renderer.set_offset(ui.next_widget_position().to_vec2());
+        self.cursor_renderer.draw_trail = self.style.cursor_trail;
+        self.cursor_renderer.trail_color = self.style.cursor_trail_color;
+        self.cursor_renderer.cursor_stroke = self.style.cursor_stroke;
 
         let mut esc = false;
         let mut tab = false;
@@ -504,6 +506,14 @@ impl TermHandler {
         if *self.wez_config == *self.style.generate_wez_config(ui) { return; }
         self.wez_config = self.style.generate_wez_config(ui).clone();
         self.terminal.set_config(self.wez_config.clone());
+    }
+
+    pub fn style (&self) -> &Style {
+        &self.style
+    }
+
+    pub fn style_mut (&mut self) -> &mut Style {
+        &mut self.style
     }
 
     pub fn exit_status (&mut self) -> Option<u32> {

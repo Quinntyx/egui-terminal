@@ -1,18 +1,41 @@
 use std::sync::Arc;
 
-use egui::{Color32, Ui};
+use egui::{Color32, FontFamily, FontId, Stroke, Ui};
+
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
 
 use wezterm_term::color::ColorPalette;
 
-use crate::into::IntoWez;
+use crate::{into::IntoWez, render::CursorType};
 
-#[derive(Debug, Default)]
+/// please make the font monospace or everything breaks :D
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Style {
     pub bg_color: Option<Color32>,
     pub fg_color: Option<Color32>,
-    pub cursor_color: Option<Color32>,
     pub cursor_trail: bool,
-    pub cursor_trail_color: bool,
+    pub cursor_trail_color: Option<Color32>,
+    pub font: FontId,
+    pub default_focus_cursor: CursorType,
+    pub default_unfocus_cursor: CursorType,
+    pub cursor_stroke: Stroke,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            bg_color: None,
+            fg_color: None,
+            cursor_trail: true,
+            cursor_trail_color: None,
+            font: FontId::monospace(12.),
+            default_focus_cursor: CursorType::Block(Color32::WHITE),
+            default_unfocus_cursor: CursorType::OpenBlock(Color32::WHITE),
+            cursor_stroke: Stroke::new(1., Color32::WHITE),
+        }
+    }
 }
 
 impl Style {

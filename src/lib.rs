@@ -15,7 +15,6 @@ pub use crate::config::term_config::{Style, Config};
 pub struct Terminal<'a> {
     terminal: &'a mut TermHandler,
     size: Option<Vec2>,
-    style: Style,
 }
 
 impl Widget for Terminal<'_> {
@@ -33,17 +32,11 @@ impl<'a> Terminal<'a> {
         Self {
             terminal,
             size: None,
-            style: Style::default(),
         }
     }
 
     pub fn with_size (mut self, size: Vec2) -> Self {
         self.size = Some(size);
-        self
-    }
-
-    pub fn with_style (mut self, style: Style) -> Self {
-        self.style = style;
         self
     }
 
