@@ -128,7 +128,7 @@ impl TermHandler {
         if self.exit_status().is_some() { return String::from("") }
         if let Some(pid) = self.child.process_id() {
             let pid = sysinfo::Pid::from_u32(pid);
-            if dbg!(self.system.refresh_process(pid)) {
+            if self.system.refresh_process(pid) {
                 self.system.process(pid)
                     .map(|p| p.name())
                     .unwrap_or(title)
