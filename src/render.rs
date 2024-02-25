@@ -1,5 +1,6 @@
 use egui::{pos2, vec2, Color32, Mesh, Painter, Pos2, Rect, Vec2};
 use egui::epaint::Vertex;
+use termwiz::surface::CursorVisibility;
 use wezterm_term::CursorPosition;
 
 fn pos2_to_vertex (a: Pos2, c: Color32) -> Vertex {
@@ -96,6 +97,7 @@ pub struct CursorRenderer {
     pub draw_trail: bool,
     cursor_rect: Rect,
     pub cursor_type: CursorType,
+    visible: bool,
     widget_offset: Vec2,
     stable_time_factor: f64,
 }
@@ -107,6 +109,7 @@ impl CursorRenderer {
             draw_trail: true,
             cursor_rect: Rect::from_points(&[pos2(0., 0.)]),
             cursor_type: CursorType::Block(Color32::TRANSPARENT),
+            visible: true,
             widget_offset: vec2(0., 0.),
             stable_time_factor: 0.,
         }
@@ -116,33 +119,35 @@ impl CursorRenderer {
         self.widget_offset = offset;
     }
 
-    pub fn update_cursor_rect (&mut self, ur: CursorPosition, text_width: f32, text_height: f32) {
+    pub fn update_cursor_state (&mut self, cur: CursorPosition, text_width: f32, text_height: f32) {
+        self.visible = cur.visibility == CursorVisibility::Visible;
+
         let cursor_rect = match &self.cursor_type {
             &CursorType::Block(_) => Rect::from_min_size(  
                 egui::pos2(
-                    (ur.x) as f32 * text_width + self.widget_offset.x+ 1.,
-                    (ur.y) as f32 * text_height + self.widget_offset.y
+                    (cur.x) as f32 * text_width + self.widget_offset.x+ 1.,
+                    (cur.y) as f32 * text_height + self.widget_offset.y
                 ),
                 egui::vec2(text_width - 2., text_height),
             ),
             &CursorType::Beam(_) => Rect::from_min_size(
                 egui::pos2(
-                    (ur.x) as f32 * text_width + self.widget_offset.x+ 1.,
-                    (ur.y) as f32 * text_height + self.widget_offset.y
+                    (cur.x) as f32 * text_width + self.widget_offset.x+ 1.,
+                    (cur.y) as f32 * text_height + self.widget_offset.y
                 ),
                 egui::vec2(text_width - 4., text_height),
             ),
             &CursorType::OpenBlock(_) => Rect::from_min_size(  
                 egui::pos2(
-                    (ur.x) as f32 * text_width + self.widget_offset.x+ 1.,
-                    (ur.y) as f32 * text_height + self.widget_offset.y
+                    (cur.x) as f32 * text_width + self.widget_offset.x+ 1.,
+                    (cur.y) as f32 * text_height + self.widget_offset.y
                 ),
                 egui::vec2(text_width - 2., text_height),
             ),
             &CursorType::None => Rect::from_min_size(  
                 egui::pos2(
-                    (ur.x) as f32 * text_width + self.widget_offset.x+ 1.,
-                    (ur.y) as f32 * text_height + self.widget_offset.y
+                    (cur.x) as f32 * text_width + self.widget_offset.x+ 1.,
+                    (cur.y) as f32 * text_height + self.widget_offset.y
                 ),
                 egui::vec2(text_width - 2., text_height),
             ),

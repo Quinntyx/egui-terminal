@@ -469,7 +469,7 @@ impl TermHandler {
                 }
             ).inner;
 
-        self.cursor_renderer.update_cursor_rect(self.terminal.cursor_pos(), self.text_width, self.text_height);
+        self.cursor_renderer.update_cursor_state(self.terminal.cursor_pos(), self.text_width, self.text_height);
         self.cursor_renderer.draw_cursor(ui.painter_at(r.rect), ui.input(|i| i.stable_dt.min(0.1)));
         self.cursor_renderer.update_cursor_trail(0.2);
 
