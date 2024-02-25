@@ -170,6 +170,7 @@ impl CursorRenderer {
     pub fn draw_cursor (&mut self, painter: Painter, delta_time: f32) {
         self.stable_time_factor += delta_time as f64;
         if matches!(self.cursor_type, CursorType::None) { return; }
+        if !self.visible { return; }
 
         painter.rect(
             self.cursor_rect,
