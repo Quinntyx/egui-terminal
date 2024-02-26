@@ -1,4 +1,5 @@
 use egui::{pos2, vec2, Color32, Mesh, Painter, Pos2, Rect, Stroke, Vec2};
+use ecolor::HexColor;
 use egui::epaint::Vertex;
 use termwiz::surface::CursorVisibility;
 use wezterm_term::CursorPosition;
@@ -99,10 +100,10 @@ impl SimpleMeshBuilder for Mesh {
 #[derive(Debug, Copy, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum CursorType {
-    Block(Color32),
-    SolidBlock(Color32),
-    Beam(Color32),
-    OpenBlock(Color32),
+    Block(HexColor),
+    SolidBlock(HexColor),
+    Beam(HexColor),
+    OpenBlock(HexColor),
     #[default]
     None
 }
@@ -125,7 +126,7 @@ impl CursorRenderer {
             cursor_trail_source: Rect::from_points(&[pos2(0., 0.)]),
             draw_trail: true,
             cursor_rect: Rect::from_points(&[pos2(0., 0.)]),
-            cursor_type: CursorType::Block(Color32::TRANSPARENT),
+            cursor_type: CursorType::Block(HexColor::Hex8(Color32::TRANSPARENT)),
             visible: true,
             widget_offset: vec2(0., 0.),
             stable_time_factor: 0.,
@@ -173,10 +174,10 @@ impl CursorRenderer {
             &CursorType::SolidBlock(c) => (1., c),
             &CursorType::OpenBlock(c) => (0., c),
             &CursorType::Beam(c) => (1., c),
-            &CursorType::None => (0., Color32::TRANSPARENT),
+            &CursorType::None => (0., HexColor::Hex8(Color32::TRANSPARENT)),
         };
         
-        color.gamma_multiply(alpha as f32)
+        color.color().gamma_multiply(alpha as f32)
     }
 
     pub fn draw_cursor (&mut self, painter: Painter, delta_time: f32) {

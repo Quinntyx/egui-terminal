@@ -14,7 +14,7 @@ pub use portable_pty::CommandBuilder;
 pub use termwiz::Error;
 
 use crossbeam_channel::{unbounded, Receiver};
-use wezterm_term::{Terminal as WezTerm, TerminalConfiguration, TerminalSize};
+use wezterm_term::{Terminal as WezTerm, TerminalSize};
 use termwiz::cellcluster::CellCluster;
 use portable_pty::PtySize;
 
@@ -23,7 +23,7 @@ use egui::{Color32, Event, FontId, InputState, Modifiers, Response, TextFormat, 
 use crate::into::*;
 use crate::config::definitions::TermResult;
 use crate::config::term_config::{Config, Style};
-use crate::render::{CursorRenderer, CursorType};
+use crate::render::CursorRenderer;
 
 pub struct TermHandler {
     terminal: WezTerm,
@@ -426,7 +426,7 @@ impl TermHandler {
 
         self.cursor_renderer.set_offset(ui.next_widget_position().to_vec2());
         self.cursor_renderer.draw_trail = self.style.cursor_trail;
-        self.cursor_renderer.trail_color = self.style.cursor_trail_color;
+        self.cursor_renderer.trail_color = self.style.cursor_trail_color.map(|m| m.color());
         self.cursor_renderer.cursor_stroke = self.style.cursor_stroke;
 
         let mut esc = false;
