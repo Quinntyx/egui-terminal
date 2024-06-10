@@ -36,6 +36,22 @@ pub fn quad (a: Pos2, b: Pos2, c: Pos2, d: Pos2, color: Color32) -> Mesh {
     m
 }
 
+
+pub trait SimpleMeshBuilder {
+    fn add_triangle_simple (&mut self, a: Pos2, b: Pos2, c: Pos2, color: Color32);
+    fn add_quad_simple (&mut self, a: Pos2, b: Pos2, c: Pos2, d: Pos2, color: Color32);
+}
+
+impl SimpleMeshBuilder for Mesh {
+    fn add_triangle_simple (&mut self, a: Pos2, b: Pos2, c: Pos2, color: Color32) {
+        self.append(triangle(a, b, c, color));
+    }
+
+    fn add_quad_simple (&mut self, a: Pos2, b: Pos2, c: Pos2, d: Pos2, color: Color32) {
+        self.append(quad(a, b, c, d, color));
+    }
+}
+
 pub fn quad_trail (cursor: Rect, trail: Rect, color: Color32) -> Mesh {
     let mut m = Mesh::default();
 
@@ -80,21 +96,6 @@ pub fn quad_trail (cursor: Rect, trail: Rect, color: Color32) -> Mesh {
     }
 
     m
-}
-
-pub trait SimpleMeshBuilder {
-    fn add_triangle_simple (&mut self, a: Pos2, b: Pos2, c: Pos2, color: Color32);
-    fn add_quad_simple (&mut self, a: Pos2, b: Pos2, c: Pos2, d: Pos2, color: Color32);
-}
-
-impl SimpleMeshBuilder for Mesh {
-    fn add_triangle_simple (&mut self, a: Pos2, b: Pos2, c: Pos2, color: Color32) {
-        self.append(triangle(a, b, c, color));
-    }
-
-    fn add_quad_simple (&mut self, a: Pos2, b: Pos2, c: Pos2, d: Pos2, color: Color32) {
-        self.append(quad(a, b, c, d, color));
-    }
 }
 
 #[derive(Debug, Copy, Clone, Default)]

@@ -4,25 +4,25 @@
 // You can find her on Github, she does good work; This project is based on luminol-term, from the
 // Luminol project, at https://github.com/Astrabit-ST/Luminol. Go check it out!
 
+use std::ffi::OsString;
 use std::fmt::Debug;
 use std::io::prelude::*;
-use std::sync::Arc;
 use std::ops::Range;
-use std::ffi::OsString;
+use std::sync::Arc;
 
 pub use portable_pty::CommandBuilder;
 pub use termwiz::Error;
 
 use crossbeam_channel::{unbounded, Receiver};
-use wezterm_term::{Terminal as WezTerm, TerminalSize};
-use termwiz::cellcluster::CellCluster;
 use portable_pty::PtySize;
+use termwiz::cellcluster::CellCluster;
+use wezterm_term::{Terminal as WezTerm, TerminalSize};
 
 use egui::{Color32, Event, FontId, InputState, Modifiers, Response, TextFormat, Ui, Vec2};
 
-use crate::into::*;
 use crate::config::definitions::TermResult;
 use crate::config::term_config::{Config, Style};
+use crate::into::*;
 use crate::render::CursorRenderer;
 
 pub struct TermHandler {
@@ -56,19 +56,19 @@ impl Drop for TermHandler {
 }
 
 impl TermHandler {
-    pub fn new (command: CommandBuilder) -> Self {
+    pub fn new(command: CommandBuilder) -> Self {
         Self::try_new(command).expect("should be able to create terminal")
     }
 
-    pub fn new_from_str (command: &str) -> Self {
+    pub fn new_from_str(command: &str) -> Self {
         Self::try_new_from_str(command).expect("should be able to create terminal")
     }
 
-    pub fn try_new_from_str (command: &str) -> Result<Self, termwiz::Error> {
+    pub fn try_new_from_str(command: &str) -> Result<Self, termwiz::Error> {
         Self::try_new(CommandBuilder::new(command))
     }
 
-    pub fn try_new (command: CommandBuilder) -> Result<Self, termwiz::Error> {
+    pub fn try_new(command: CommandBuilder) -> Result<Self, termwiz::Error> {
         let pty_system = portable_pty::native_pty_system();
         let pair = pty_system.openpty(portable_pty::PtySize::default())?;
         let child = pair.slave.spawn_command(command.clone())?;
@@ -83,7 +83,12 @@ impl TermHandler {
         let terminal = WezTerm::new(
             TerminalSize::default(),
             wez_config.clone(),
-            command.get_argv().join(OsString::from(" ").as_os_str()).into_string().expect("should be able to convert command to String").as_ref(),
+            command
+                .get_argv()
+                .join(OsString::from(" ").as_os_str())
+                .into_string()
+                .expect("should be able to convert command to String")
+                .as_ref(),
             "1.0",
             writer,
         );
@@ -96,15 +101,13 @@ impl TermHandler {
 
             loop {
                 let Ok(len) = reader.read(&mut buf) else {
-                    return
+                    return;
                 };
                 let actions = parser.parse_as_vec(&buf[0..len]);
-                let Ok(_) = sender.send(actions) else {
-                    return
-                };
+                let Ok(_) = sender.send(actions) else { return };
             }
         });
-        
+
         Ok(Self {
             terminal,
             style,
@@ -124,23 +127,24 @@ impl TermHandler {
         })
     }
 
-    pub fn title (&mut self, title: &str) -> String {
-        if self.exit_status().is_some() { return String::from("") }
+    pub fn title(&mut self, title: &str) -> String {
+        if self.exit_status().is_some() {
+            return String::from("");
+        }
         if let Some(pid) = self.child.process_id() {
             let pid = sysinfo::Pid::from_u32(pid);
             if self.system.refresh_process(pid) {
-                self.system.process(pid)
-                    .map(|p| p.name())
-                    .unwrap_or(title)
+                self.system.process(pid).map(|p| p.name()).unwrap_or(title)
             } else {
                 title
             }
         } else {
             title
-        }.to_owned()
+        }
+        .to_owned()
     }
 
-    pub fn id (&self) -> egui::Id {
+    pub fn id(&self) -> egui::Id {
         if let Some(id) = self.child.process_id() {
             egui::Id::new(id)
         } else {
@@ -148,15 +152,12 @@ impl TermHandler {
         }
     }
 
-    fn format_to_egui (&self, cluster: &CellCluster) -> TextFormat {
+    fn format_to_egui(&self, cluster: &CellCluster) -> TextFormat {
         let palette = self.terminal.get_config().color_palette();
 
         let fg_color = palette.resolve_fg(cluster.attrs.foreground()).into_egui();
         let bg_color = palette.resolve_bg(cluster.attrs.background()).into_egui();
-        let underline = if !matches!(
-            cluster.attrs.underline(),
-            wezterm_term::Underline::None
-        ) {
+        let underline = if !matches!(cluster.attrs.underline(), wezterm_term::Underline::None) {
             egui::Stroke::new(
                 1.0,
                 palette
@@ -174,7 +175,7 @@ impl TermHandler {
         } else {
             egui::Stroke::NONE
         };
-        
+
         egui::TextFormat {
             font_id: self.style.font.clone(),
             color: fg_color,
@@ -186,8 +187,15 @@ impl TermHandler {
         }
     }
 
-    fn event_pointer_move (&mut self, e: &Event, response: &Response, modifiers: Modifiers) -> TermResult {
-        let Event::PointerMoved(pos) = e else { unreachable!() };
+    fn event_pointer_move(
+        &mut self,
+        e: &Event,
+        response: &Response,
+        modifiers: Modifiers,
+    ) -> TermResult {
+        let Event::PointerMoved(pos) = e else {
+            unreachable!()
+        };
         let relative_pos = *pos - response.rect.min;
         let char_x = (relative_pos.x / 12.0) as usize;
         let char_y = (relative_pos.y / 12.0) as i64;
@@ -204,13 +212,16 @@ impl TermHandler {
         Ok(())
     }
 
-    fn event_pointer_button (&mut self, e: &Event, response: &Response) -> TermResult {
+    fn event_pointer_button(&mut self, e: &Event, response: &Response) -> TermResult {
         let Event::PointerButton {
             pos,
             button,
             pressed,
             modifiers,
-        } = e else { unreachable!() };
+        } = e
+        else {
+            unreachable!()
+        };
 
         let relative_pos = *pos - response.rect.min;
         let char_x = (relative_pos.x / self.text_width) as usize;
@@ -232,8 +243,15 @@ impl TermHandler {
         Ok(())
     }
 
-    fn event_scroll (&mut self, e: &Event, modifiers: Modifiers, pointer_position: Vec2) -> TermResult {
-        let Event::Scroll(pos) = e else { unreachable!() };
+    fn event_scroll(
+        &mut self,
+        e: &Event,
+        modifiers: Modifiers,
+        pointer_position: Vec2,
+    ) -> TermResult {
+        let Event::Scroll(pos) = e else {
+            unreachable!()
+        };
         let char_x = (pointer_position.x / self.text_width) as usize;
         let char_y = (pointer_position.y / self.text_height) as i64;
         self.terminal.mouse_event(wezterm_term::MouseEvent {
@@ -253,13 +271,16 @@ impl TermHandler {
         Ok(())
     }
 
-    fn event_key (&mut self, e: &Event) -> TermResult {
+    fn event_key(&mut self, e: &Event) -> TermResult {
         let Event::Key {
             key,
             modifiers,
             pressed,
             ..
-        } = e else { unreachable!() };
+        } = e
+        else {
+            unreachable!()
+        };
 
         if let Ok(key) = key.try_into_wez() {
             if *pressed {
@@ -275,7 +296,7 @@ impl TermHandler {
     }
 
     #[allow(unused_variables)]
-    fn event_text (&mut self, e: &Event, modifiers: Modifiers) -> TermResult {
+    fn event_text(&mut self, e: &Event, modifiers: Modifiers) -> TermResult {
         let Event::Text(t) = e else { unreachable!() };
 
         if t == "exit" {
@@ -284,51 +305,50 @@ impl TermHandler {
 
         t.chars()
             .filter(|c| !"abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(*c))
-            .try_for_each(
-                |c| {
-                    self.terminal.key_down(
-                        wezterm_term::KeyCode::Char(c),
-                        modifiers.into_wez(),
-                    )
-                }
-            ).and_then(
-                |_| {
-                    t.chars().try_for_each(
-                        |c| {
-                            self.terminal.key_up(
-                                wezterm_term::KeyCode::Char(c),
-                                modifiers.into_wez(),
-                            )
-                        }
-                    )
-                }
-        )?;
+            .try_for_each(|c| {
+                self.terminal
+                    .key_down(wezterm_term::KeyCode::Char(c), modifiers.into_wez())
+            })
+            .and_then(|_| {
+                t.chars().try_for_each(|c| {
+                    self.terminal
+                        .key_up(wezterm_term::KeyCode::Char(c), modifiers.into_wez())
+                })
+            })?;
 
         Ok(())
     }
 
-    fn relative_pointer_pos (&self, response: &Response, i: &InputState) -> Vec2 {
+    fn relative_pointer_pos(&self, response: &Response, i: &InputState) -> Vec2 {
         i.pointer.interact_pos().unwrap() - response.rect.min
     }
 
-    fn manage_event (&mut self, event: &Event, response: &Response, i: &InputState) -> Result<(), Error> {
+    fn manage_event(
+        &mut self,
+        event: &Event,
+        response: &Response,
+        i: &InputState,
+    ) -> Result<(), Error> {
         match event {
             Event::PointerMoved(_) => self.event_pointer_move(event, response, i.modifiers),
-            Event::PointerButton {..} => self.event_pointer_button(event, response),
-            Event::Scroll(_) => self.event_scroll(event, i.modifiers, self.relative_pointer_pos(response, i)),
-            Event::Key {..} => self.event_key(event),
+            Event::PointerButton { .. } => self.event_pointer_button(event, response),
+            Event::Scroll(_) => {
+                self.event_scroll(event, i.modifiers, self.relative_pointer_pos(response, i))
+            }
+            Event::Key { .. } => self.event_key(event),
             Event::Text(_) => self.event_text(event, i.modifiers),
             _ => Ok(()),
         }
     }
 
-    fn manage_inputs (&mut self, i: &InputState, response: &Response) -> Vec<Result<(), Error>> {
-        i.events.iter()
+    fn manage_inputs(&mut self, i: &InputState, response: &Response) -> Vec<Result<(), Error>> {
+        i.events
+            .iter()
             .map(|event| self.manage_event(event, response, i))
             .collect()
     }
 
-    fn generate_rows (&mut self, ui: &mut Ui, rows: Range<usize>) -> Response {
+    fn generate_rows(&mut self, ui: &mut Ui, rows: Range<usize>) -> Response {
         let palette = self.terminal.get_config().color_palette();
         let size = self.size;
 
@@ -339,27 +359,19 @@ impl TermHandler {
 
         let mut job = egui::text::LayoutJob::default();
 
-        let mut iter = self.terminal
+        let mut iter = self
+            .terminal
             .screen()
             .lines_in_phys_range(rows.clone())
             .into_iter()
             .peekable();
 
         while let Some(line) = iter.next() {
-            line.cluster(None).iter()
-                .for_each(|c| {
-                    job.append(
-                        &c.text,
-                        0.0,
-                        self.format_to_egui(c)
-                    )
-                });
+            line.cluster(None)
+                .iter()
+                .for_each(|c| job.append(&c.text, 0.0, self.format_to_egui(c)));
             if iter.peek().is_some() {
-                job.append(
-                    "\n",
-                    0.0,
-                    mono_format.clone(),
-                );
+                job.append("\n", 0.0, mono_format.clone());
             }
         }
 
@@ -367,7 +379,8 @@ impl TermHandler {
         let mut galley_rect = galley.rect;
         galley_rect.set_width(self.text_width * size.cols as f32);
 
-        let (response, painter) = ui.allocate_painter(galley_rect.size(), egui::Sense::click_and_drag());
+        let (response, painter) =
+            ui.allocate_painter(galley_rect.size(), egui::Sense::click_and_drag());
 
         if response.clicked() && !response.has_focus() {
             ui.memory_mut(|mem| mem.request_focus(response.id));
@@ -390,11 +403,10 @@ impl TermHandler {
         if response.has_focus() {
             self.was_focused = true;
             ui.input_mut(|i| {
-                self.manage_inputs(i, &response).iter()
-                    .for_each(|res| {
-                        let Err(e) = res else { return };
-                        eprintln!("terminal input error {e:?}");
-                    });
+                self.manage_inputs(i, &response).iter().for_each(|res| {
+                    let Err(e) = res else { return };
+                    eprintln!("terminal input error {e:?}");
+                });
             });
         } else {
             self.was_focused = false;
@@ -403,7 +415,11 @@ impl TermHandler {
         response
     }
 
-    pub(crate) fn draw (&mut self, ui: &mut egui::Ui, widget_size: egui::Vec2) -> std::io::Result<Response> {
+    pub(crate) fn draw(
+        &mut self,
+        ui: &mut egui::Ui,
+        widget_size: egui::Vec2,
+    ) -> std::io::Result<Response> {
         while let Ok(actions) = self.reader.try_recv() {
             self.terminal.perform_actions(actions);
         }
@@ -411,12 +427,18 @@ impl TermHandler {
         if self.was_focused {
             self.cursor_renderer.cursor_type = self.style.default_focus_cursor // CursorType::Block(Color32::WHITE);
         } else {
-            self.cursor_renderer.cursor_type = self.style.default_unfocus_cursor // CursorType::OpenBlock(self.wez_config.color_palette().background.into_egui())
+            self.cursor_renderer.cursor_type = self.style.default_unfocus_cursor
+            // CursorType::OpenBlock(self.wez_config.color_palette().background.into_egui())
         }
 
         ui.spacing_mut().item_spacing = egui::Vec2::ZERO;
 
-        (self.text_width, self.text_height) = ui.fonts(|f| (f.glyph_width(&self.style.font, '?').round(), f.row_height(&self.style.font).round()));
+        (self.text_width, self.text_height) = ui.fonts(|f| {
+            (
+                f.glyph_width(&self.style.font, '?').round(),
+                f.row_height(&self.style.font).round(),
+            )
+        });
 
         self.size.cols = (widget_size.x / self.text_width) as usize;
         self.size.rows = (widget_size.y / self.text_height) as usize;
@@ -424,7 +446,8 @@ impl TermHandler {
         self.resize_rc();
         self.config(ui);
 
-        self.cursor_renderer.set_offset(ui.next_widget_position().to_vec2());
+        self.cursor_renderer
+            .set_offset(ui.next_widget_position().to_vec2());
         self.cursor_renderer.draw_trail = self.style.cursor_trail;
         self.cursor_renderer.trail_color = self.style.cursor_trail_color.map(|m| m.color());
         self.cursor_renderer.cursor_stroke = self.style.cursor_stroke;
@@ -466,16 +489,21 @@ impl TermHandler {
                 ui,
                 self.text_height,
                 self.terminal.screen().scrollback_rows(),
-                |ui, rows| {
-                    self.generate_rows(ui, rows)
-                }
-            ).inner;
+                |ui, rows| self.generate_rows(ui, rows),
+            )
+            .inner;
 
-        self.cursor_renderer.update_cursor_state(self.terminal.cursor_pos(), self.text_width, self.text_height);
-        self.cursor_renderer.draw_cursor(ui.painter_at(r.rect), ui.input(|i| i.stable_dt.min(0.1)));
+        self.cursor_renderer.update_cursor_state(
+            self.terminal.cursor_pos(),
+            self.text_width,
+            self.text_height,
+        );
+        self.cursor_renderer
+            .draw_cursor(ui.painter_at(r.rect), ui.input(|i| i.stable_dt.min(0.1)));
         self.cursor_renderer.update_cursor_trail(0.2);
 
-        ui.ctx().request_repaint_after(std::time::Duration::from_millis(16));
+        ui.ctx()
+            .request_repaint_after(std::time::Duration::from_millis(16));
 
         Ok(r)
     }
@@ -487,8 +515,10 @@ impl TermHandler {
         }
     }
 
-    fn resize_rc (&mut self) {
-        if self.terminal.get_size() == self.size { return; }
+    fn resize_rc(&mut self) {
+        if self.terminal.get_size() == self.size {
+            return;
+        }
 
         self.terminal.resize(self.size);
         let r = self.pair.master.resize(PtySize {
@@ -502,23 +532,26 @@ impl TermHandler {
         }
     }
 
-    fn config (&mut self, ui: &Ui) {
-        if *self.wez_config == *self.style.generate_wez_config(ui) { return; }
+    fn config(&mut self, ui: &Ui) {
+        if *self.wez_config == *self.style.generate_wez_config(ui) {
+            return;
+        }
         self.wez_config = self.style.generate_wez_config(ui).clone();
         self.terminal.set_config(self.wez_config.clone());
     }
 
-    pub fn style (&self) -> &Style {
+    pub fn style(&self) -> &Style {
         &self.style
     }
 
-    pub fn style_mut (&mut self) -> &mut Style {
+    pub fn style_mut(&mut self) -> &mut Style {
         &mut self.style
     }
 
-    pub fn exit_status (&mut self) -> Option<u32> {
-        self.child.try_wait().expect("it shouldnt crash here (seriously if this comes up im just confused)")
+    pub fn exit_status(&mut self) -> Option<u32> {
+        self.child
+            .try_wait()
+            .expect("it shouldnt crash here (seriously if this comes up im just confused)")
             .map(|c| c.exit_code())
     }
 }
-
