@@ -9,9 +9,9 @@ description = "An embedded terminal emulator widget for egui."
 
 [dependencies]
 crossbeam-channel = "0.5.8"
-eframe = "0.26"
-egui = "0.26"
-ecolor = "0.26"
+eframe = "0.28"
+egui = "0.28"
+ecolor = "0.28"
 # eframe = { version = "0.26", git = "https://github.com/quinntyx/egui" }
 # egui = { version = "0.26", git = "https://github.com/quinntyx/egui" }
 # ecolor = { version = "0.26", git = "https://github.com/quinntyx/egui" }
