@@ -249,7 +249,7 @@ impl TermHandler {
         modifiers: Modifiers,
         pointer_position: Vec2,
     ) -> TermResult {
-        let Event::Scroll(pos) = e else {
+        let Event::MouseWheel{ delta: pos, ..} = e else {
             unreachable!()
         };
         let char_x = (pointer_position.x / self.text_width) as usize;
@@ -332,7 +332,7 @@ impl TermHandler {
         match event {
             Event::PointerMoved(_) => self.event_pointer_move(event, response, i.modifiers),
             Event::PointerButton { .. } => self.event_pointer_button(event, response),
-            Event::Scroll(_) => {
+            Event::MouseWheel{ .. } => {
                 self.event_scroll(event, i.modifiers, self.relative_pointer_pos(response, i))
             }
             Event::Key { .. } => self.event_key(event),

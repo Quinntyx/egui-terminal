@@ -34,8 +34,8 @@ impl App {
         }
     }
 
-    pub fn setup (_cc: &CreationContext) -> Box<dyn eframe::App> {
-        Box::new(App::new())
+    pub fn setup<E> (_cc: &CreationContext) -> Result<Box<dyn eframe::App>, E> {
+        Ok(Box::new(App::new()))
     }
 }
 
